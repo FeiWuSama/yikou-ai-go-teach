@@ -1,6 +1,7 @@
 package config
 
 import (
+	"flag"
 	"fmt"
 	"github.com/bytedance/gopkg/util/logger"
 	"os"
@@ -39,9 +40,6 @@ type AIConfig struct {
 	BaseURL string `mapstructure:"base_url"` // API基础URL
 }
 
-// GlobalConfig 全局配置变量
-var GlobalConfig *Config
-
 // GetProjectRootPath 获取项目根路径
 // 通过 runtime.Caller 获取当前文件的路径，然后向上查找 go.mod 文件所在目录
 func GetProjectRootPath() (string, error) {
@@ -72,7 +70,11 @@ func GetProjectRootPath() (string, error) {
 
 // InitConfig 初始化配置
 // env 参数用于指定配置文件后缀，如 "local" 会读取 config-local.yaml
-func InitConfig(env string) {
+func InitConfig() *Config {
+	// 解析命令行参数
+	env := flag.String("env", "", "运行环境，如 local, dev, test, prod")
+	flag.Parse()
+
 	// 获取项目根路径
 	rootPath, err := GetProjectRootPath()
 	if err != nil {
@@ -84,8 +86,8 @@ func InitConfig(env string) {
 
 	// 确定配置文件名称
 	configName := "config"
-	if env != "" {
-		configName = fmt.Sprintf("config-%s", env)
+	if *env != "" {
+		configName = fmt.Sprintf("config-%s", *env)
 	}
 
 	// 设置配置文件名和路径
@@ -104,10 +106,11 @@ func InitConfig(env string) {
 	logger.Infof("配置文件路径: %s\n", viper.ConfigFileUsed())
 
 	// 解析配置到结构体
-	GlobalConfig = &Config{}
-	if err := viper.Unmarshal(GlobalConfig); err != nil {
+	cfg := &Config{}
+	if err := viper.Unmarshal(cfg); err != nil {
 		panic(fmt.Errorf("解析配置失败: %w", err))
 	}
+	return cfg
 }
 
 // GetDSN 获取数据库连接字符串
